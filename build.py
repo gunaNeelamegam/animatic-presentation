@@ -15,9 +15,26 @@ from bs4 import BeautifulSoup
 from requests import get
 from inquirer import Text, List, prompt, themes
 
-SOURCE_FILE_NAME = ""
-PLUGINS = "highlight  markdown  math  notes  search  zoom".split(" ")
+USER_PLUGIN_CONFIG = ["highlight"]
+VIDEO_FORMATS = ["mp4", "avi", "mkv", "mov", "wmv"]
+AUDIO_FORMATS = ["mp3", "wav", "aac", "ogg", "flac"]
 
+SOURCE_FILE_NAME = ""
+PLUGINS = list(
+    filter(
+        lambda val: val.strip(),
+        "highlight  markdown  math  notes  search  zoom".split(" "),
+    )
+)
+PLUGIN_VALUE = [
+    "RevealHighlight",
+    "RevealMarkdown",
+    "RevealMath.KaTeX",
+    "RevealNotes",
+    "",
+    "",
+]
+PLUGINS_FORMAT = {plugin: PLUGIN_VALUE[i] for i, plugin in enumerate(PLUGINS)}
 DEPS = [
     "npm init -y",
     "npm i --save asciidoctor @asciidoctor/reveal.js",
@@ -39,17 +56,14 @@ Needs to configure with the markdown and highlight js and more ...
 """
 
 
-def configure_plugins():
+def configure_plugins(user_config):
     """
     Need as configuration to add and remove the plugins.
     Example:
-            plugins:[math,hightlightjs] ...
+            plugins:[math,highlight] ...
 
-    <link rel="stylesheet" href="{{CSS}}">
-    <script src="{{JS}}></script>
     """
     # NOTE: node_modules needs to add inside the container
-    user_config = ["markdown", "highlight"]
     plugin_path = "node_modules/reveal.js/plugin"
     js_paths = []
     css_paths = []
@@ -59,7 +73,6 @@ def configure_plugins():
         for dir in os.listdir(plugin_path):
             if dir in user_config:
                 for file in os.listdir(f"{plugin_path}/{dir}"):
-                    print(file)
                     if f"{dir}.js" == file:
                         js_paths.append(
                             f"""
@@ -78,7 +91,7 @@ def configure_plugins():
 def get_audiodata(url: str):
     sub_type = url.split(".")[-1]
     content = get_base64_data(url)
-    if sub_type in audio_formats:
+    if sub_type in AUDIO_FORMATS:
         print("Audio File Present", sub_type, url)
         return f"data:audio/{sub_type};base64,{content}"
 
@@ -86,7 +99,7 @@ def get_audiodata(url: str):
 def get_videodata(url: str):
     sub_type = url.split(".")[-1]
     content = get_base64_data(url)
-    if sub_type in video_formats:
+    if sub_type in VIDEO_FORMATS:
         print("Video File Present", sub_type, url)
         return f"data:video/{sub_type};base64,{content}"
 
@@ -112,15 +125,27 @@ def create_template():
             default="no",
         ),
         List(
+            "images",
+            message="create the images directory for image files",
+            choices=["yes", "no"],
+            default="no",
+        ),
+        List(
             "figures",
-            message="create a figures directory for all the images , video ,audio file's",
+            message="create a figures directory for all files",
             default="yes",
             choices=["yes", "no"],
+        ),
+        List(
+            "plugins",
+            message="create a figures directory for all the images , video ,audio file's",
+            default="all",
+            choices=[*PLUGINS[:-2]],
         ),
     ]
     answers = prompt(
         prompt_list,
-        theme=themes.BlueComposure(),
+        theme=themes.GreenPassion(),
     )
     for question in answers.keys():
         print(question)
@@ -137,6 +162,13 @@ def create_template():
                 >= 1
             ):
                 create_file(file_path=answers.get(question))
+        if question == "plugins":
+            value = answers.get(question)
+            if value == "all":
+                USER_PLUGIN_CONFIG[:-2]
+            else:
+                USER_PLUGIN_CONFIG.append(value)
+
         else:
             for key, value in answers.items():
                 if value == "yes":
@@ -175,8 +207,26 @@ def install_deps():
         return
 
 
-video_formats = ["mp4", "avi", "mkv", "mov", "wmv"]
-audio_formats = ["mp3", "wav", "aac", "ogg", "flac"]
+def inject_plugins(file_name):
+    dist = "Reveal.initialize({"
+    soup = BeautifulSoup(open(file_name).read(), "html.parser")
+    script_tag = soup.find_all("script")
+    for script in script_tag:
+        if str(script.string).find(dist) != (-1 or 0):
+            script_content = script.string.strip()
+            config_start = script_content.find(dist) + len(dist)
+            config_end = script_content.find("});", config_start) + 1
+            config_content = script_content[config_start:config_end]
+            modified_config_content = (
+                config_content.rstrip("}").rstrip() + " plugins: [RevealHighlight] }"
+            )
+            modified_script_content = (
+                script_content[:config_start]
+                + modified_config_content
+                + script_content[config_end:]
+            )
+            script.string = modified_script_content
+            create_file(str(soup), file_name)
 
 
 def run_npx_with_asciidoc(source_filename="slides.adoc"):
@@ -197,6 +247,7 @@ def run_npx_with_asciidoc(source_filename="slides.adoc"):
             )
         else:
             print("Successfully Builded html")
+            inject_plugins(SOURCE_FILE_NAME + ".html")
     else:
         raise RevealJsException("FILE NAME IS NOT PRESENT ...")
 
@@ -224,7 +275,9 @@ def extract_paths(html_file):
         paths = []
 
         # configration for plugins
-        js_plugin, css_plugin = configure_plugins()
+        js_plugin, css_plugin = configure_plugins(
+            ["markdown", "math", "notes", "highlight"]
+        )
 
         # print(js_plugin, css_plugin)
         def create_tag(content, tag_name):
@@ -406,5 +459,4 @@ if __name__ == "__main__":
     for file in get_rstfilename():
         print(INITIAL_MESSAGE)
         # create_template()
-        print(file)
         build(file)
