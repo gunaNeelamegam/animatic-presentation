@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from requests import get
 from inquirer import Text, List, prompt, themes
 
-USER_PLUGIN_CONFIG = ["highlight"]
+USER_PLUGIN_CONFIG = ["highlight", "markdown"]
 VIDEO_FORMATS = ["mp4", "avi", "mkv", "mov", "wmv"]
 AUDIO_FORMATS = ["mp3", "wav", "aac", "ogg", "flac"]
 
@@ -218,7 +218,11 @@ def inject_plugins(file_name):
             config_end = script_content.find("});", config_start) + 1
             config_content = script_content[config_start:config_end]
             modified_config_content = (
-                config_content.rstrip("}").rstrip() + " plugins: [RevealHighlight] }"
+                config_content.rstrip("}").rstrip()
+                + " plugins: {[0]},".format(
+                    [[PLUGINS_FORMAT[plugin] for plugin in USER_PLUGIN_CONFIG]]
+                )
+                + "}"
             )
             modified_script_content = (
                 script_content[:config_start]
@@ -458,5 +462,5 @@ if __name__ == "__main__":
     """
     for file in get_rstfilename():
         print(INITIAL_MESSAGE)
-        # create_template()
-        build(file)
+        create_template()
+        # build(file)
