@@ -7,6 +7,7 @@ command to build html page.
     - make slide
 """
 
+
 from subprocess import run
 import os
 import base64
@@ -15,6 +16,7 @@ from requests import get
 from inquirer import Text, List, prompt, themes
 
 SOURCE_FILE_NAME = ""
+PLUGINS = "highlight  markdown  math  notes  search  zoom".split(" ")
 
 DEPS = [
     "npm init -y",
@@ -29,7 +31,48 @@ class RevealJsException(Exception):
 """
 Creating the Project template folder.
 """
-INITIAL_MESSAGE = "creating the revealjs presentation \n NOTE:\n \t* audio and video content if project needs create either audio and video \n\n \t\t(or)\n\n\t\t figures may contains all the resources file's.... \n\n\n"
+INITIAL_MESSAGE = "creating the revealjs presentation \n NOTE:\n \t* audio and video content if project needs create either audio and video \n\n \t\t(or)\n\n\t* figures may contains all the resources file's.... \n\n\n"
+
+
+"""
+Needs to configure with the markdown and highlight js and more ...
+"""
+
+
+def configure_plugins():
+    """
+    Need as configuration to add and remove the plugins.
+    Example:
+            plugins:[math,hightlightjs] ...
+
+    <link rel="stylesheet" href="{{CSS}}">
+    <script src="{{JS}}></script>
+    """
+    # NOTE: node_modules needs to add inside the container
+    user_config = ["markdown", "highlight"]
+    plugin_path = "node_modules/reveal.js/plugin"
+    js_paths = []
+    css_paths = []
+    if os.path.exists(plugin_path.strip().split("/")[0]) and os.path.exists(
+        plugin_path
+    ):
+        for dir in os.listdir(plugin_path):
+            if dir in user_config:
+                for file in os.listdir(f"{plugin_path}/{dir}"):
+                    print(file)
+                    if f"{dir}.js" == file:
+                        js_paths.append(
+                            f"""
+                            {open(f"{plugin_path}/{dir}/{file}").read()}
+                            """
+                        )
+                    if ".css" in file:
+                        css_paths.append(
+                            f"""
+                                {open(f"{plugin_path}/{dir}/{file}").read()}
+                                         """
+                        )
+        return (js_paths, css_paths)
 
 
 def get_audiodata(url: str):
@@ -143,6 +186,7 @@ def run_npx_with_asciidoc(source_filename="slides.adoc"):
         raise RevealJsException("RST FILE PATH NOT YET EXIST....")
 
     if SOURCE_FILE_NAME := source_filename.strip().split(".")[0]:
+        print(f"{SOURCE_FILE_NAME=}")
         command = (
             f"npx asciidoctor-revealjs -o  {SOURCE_FILE_NAME}.html {source_filename}"
         )
@@ -154,7 +198,7 @@ def run_npx_with_asciidoc(source_filename="slides.adoc"):
         else:
             print("Successfully Builded html")
     else:
-        raise RevealJsException("FILE NAME IS NOT PRESEN ...")
+        raise RevealJsException("FILE NAME IS NOT PRESENT ...")
 
 
 def get_imagedata(url: str):
@@ -169,6 +213,7 @@ def get_imagedata(url: str):
 def extract_paths(html_file):
     with open(html_file, "r") as file:
         soup = BeautifulSoup(file, "html.parser")
+        head_tag = soup.find("head")
         script_tags = soup.find_all("script")
         link_tags = soup.find_all("link")
         img_tag = soup.find_all("img")
@@ -178,14 +223,30 @@ def extract_paths(html_file):
 
         paths = []
 
-        # Extract paths from <script> tags
+        # configration for plugins
+        js_plugin, css_plugin = configure_plugins()
+
+        # print(js_plugin, css_plugin)
+        def create_tag(content, tag_name):
+            script_tag = soup.new_tag(tag_name)
+            script_tag.string = content
+            return script_tag
+
+        for tag in list(
+            map(lambda args: (lambda: create_tag(args, "script"))(), js_plugin)
+        ):
+            head_tag.append(tag)
+        for style_tag in list(
+            map(lambda args: (lambda: create_tag(args, "style"))(), css_plugin)
+        ):
+            head_tag.append(style_tag)
+
         for script in script_tags:
             if "src" in script.attrs:
                 path = script["src"]
                 if "node_modules/" in path:
                     empty_script_tag = soup.new_tag("script")
                     empty_script_tag.string = open(path).read()
-                    empty_script_tag.attrs = {"crossorgin": ""}
                     script.replace_with(empty_script_tag)
                     paths.append(os.path.join(os.path.dirname(html_file), path))
 
