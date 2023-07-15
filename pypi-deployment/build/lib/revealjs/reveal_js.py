@@ -122,7 +122,7 @@ def create_template(status: bool = True):
     project_name = sys.argv[2] or "revealjs"
     if project_name:
         try:
-            os.makedirs(os.path.realpath(".") + project_name, exist_ok=not status)
+            os.makedirs(os.path.realpath(".") + f"/{project_name}", exist_ok=not status)
         except FileExistsError as e:
             print(f"\n\t NOTE : \n\t\t {e.args}")
             create_template(run_when_fails())
@@ -466,17 +466,19 @@ def get_rstfilename():
 
 
 def main():
-    ACTIONS = {"create": create_template, "build": build}
-    action_name = sys.argv[1]
-    if action_name in ACTIONS.keys():
-        ACTIONS.get(action_name)()
-        print(f"""{action_name} START'S""")
-    else:
-        print(
-            "\n \n AS OF NOW WE PROVIDING TWO DIFFERENT SERVICES  \n\n "
-            + "".join("*\t {}\n" for _ in ACTIONS.keys()).format(*ACTIONS.keys())
-        )
-
+    try:
+        ACTIONS = {"create": create_template, "build": build}
+        action_name = sys.argv[1]
+        if action_name in ACTIONS.keys():
+            ACTIONS.get(action_name)()
+            print(f"""{action_name} START'S""")
+        else:
+            print(
+                "\n \n AS OF NOW WE PROVIDING TWO DIFFERENT SERVICES  \n\n "
+                + "".join("*\t {}\n" for _ in ACTIONS.keys()).format(*ACTIONS.keys())
+            )
+    except Exception as e:
+        print(f" Went's Wrong ... {e.args}")
 
 if __name__ == "__main__":
     """
