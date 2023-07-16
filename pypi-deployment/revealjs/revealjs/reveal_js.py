@@ -28,7 +28,7 @@ PLUGINS = list(
         "highlight  markdown  math  notes  search  zoom".split(" "),
     )
 )
-USER_PLUGIN_CONFIG = [*DEFAULT_PLUGINS]
+USER_PLUGIN_CONFIG = [*PLUGINS]
 PLUGIN_VALUE = [
     "RevealHighlight",
     "RevealMarkdown",
@@ -194,10 +194,9 @@ def create_template(status: bool = True):
         if question == "plugins":
             value = answers.get(question)
             if value == "all":
-                USER_PLUGIN_CONFIG = USER_PLUGIN_CONFIG[:-2]
+                USER_PLUGIN_CONFIG[:-2]
             else:
-                # USER_PLUGIN_CONFIG.append(value)
-                pass
+                USER_PLUGIN_CONFIG.append(value)
 
         else:
             for _, value in answers.items():
@@ -500,7 +499,6 @@ def main():
                     "build a created project (or) NOTE :: you can use the markdown support also . \n\t\t command: reveal_js create {project_name} as default revealjs-project\n\n",
                 ],
             )
-            return
         if action_name in ACTIONS.keys():
             ACTIONS.get(action_name)()
             print(f"""{action_name} START'S""")
@@ -508,7 +506,7 @@ def main():
             error_style = "\n\t* {}\n"
             print(
                 "\n AS OF NOW WE PROVIDING TWO DIFFERENT SERVICES  \n"
-                + "".join(error_style for _ in ACTIONS.keys()).format(
+                + "".join(error_style.title() for _ in ACTIONS.keys()).format(
                     *[action.title() for action in ACTIONS.keys()]
                 )
             )
@@ -526,7 +524,7 @@ def print_exception(message="", exception=[]):
 
         print(
             f"\n {message.upper()}  \n"
-            + "".join("\n\t* {}\n" for _ in exception).format(
+            + "".join("\n\t* {}\n".title() for _ in exception).format(
                 *[action.title() for action in exception]
             )
         )

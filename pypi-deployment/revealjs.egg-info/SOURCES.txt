@@ -1,7 +1,9 @@
 README.md
 setup.py
 revealjs/__init__.py
+revealjs/interface.py
 revealjs/reveal_js.py
+revealjs/slide.adoc
 revealjs.egg-info/PKG-INFO
 revealjs.egg-info/SOURCES.txt
 revealjs.egg-info/dependency_links.txt

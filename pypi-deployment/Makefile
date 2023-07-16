@@ -1,4 +1,7 @@
 all: clean build release
+PASSWORD=$(PYPI_PASSWORD)
+USERNAME=$(PYPI_USERNAME)
+
 
 clean:
 		sudo rm -rf dist/ build/ revealjs.egg-info/  
@@ -12,5 +15,6 @@ build:
 		echo "Build Successfully .............."
 
 release:
-		twine upload --verbose dist/*
+		pip3 install twine
+		twine upload -u $(USERNAME) -p $(PASSWORD) --verbose dist/*
 		

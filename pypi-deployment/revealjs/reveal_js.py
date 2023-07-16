@@ -15,6 +15,7 @@ import base64
 from bs4 import BeautifulSoup
 from requests import get
 from inquirer import Text, List, prompt, themes
+from .interface import get_sample_adocfile
 
 DEFAULT_PLUGINS = ["markdown", "math", "notes", "highlight"]
 VIDEO_FORMATS = ["mp4", "avi", "mkv", "mov", "wmv"]
@@ -27,7 +28,7 @@ PLUGINS = list(
         "highlight  markdown  math  notes  search  zoom".split(" "),
     )
 )
-USER_PLUGIN_CONFIG = [*PLUGINS]
+USER_PLUGIN_CONFIG = [*DEFAULT_PLUGINS]
 PLUGIN_VALUE = [
     "RevealHighlight",
     "RevealMarkdown",
@@ -94,7 +95,6 @@ def get_audiodata(url: str):
     sub_type = url.split(".")[-1]
     content = get_base64_data(url)
     if sub_type in AUDIO_FORMATS:
-        print("Audio File Present", sub_type, url)
         return f"data:audio/{sub_type};base64,{content}"
 
 
@@ -102,7 +102,6 @@ def get_videodata(url: str):
     sub_type = url.split(".")[-1]
     content = get_base64_data(url)
     if sub_type in VIDEO_FORMATS:
-        print("Video File Present", sub_type, url)
         return f"data:video/{sub_type};base64,{content}"
 
 
@@ -119,10 +118,18 @@ def run_when_fails():
 
 
 def create_template(status: bool = True):
-    project_name = sys.argv[2] or "revealjs"
+    project_name = ""
+    try:
+        project_name = sys.argv[2]
+    except IndexError as e:
+        project_name = "revealjs-project"
+
     if project_name:
         try:
-            os.makedirs(os.path.realpath(".") + f"/{project_name}", exist_ok=not status)
+            os.makedirs(
+                os.path.join(os.path.realpath("."), f"{project_name}"),
+                exist_ok=not status,
+            )
         except FileExistsError as e:
             print(f"\n\t NOTE : \n\t\t {e.args}")
             create_template(run_when_fails())
@@ -171,7 +178,6 @@ def create_template(status: bool = True):
     )
 
     for question in answers.keys():
-        print(question)
         if question == "slide_name":
             if (
                 len(
@@ -184,23 +190,36 @@ def create_template(status: bool = True):
                 )
                 >= 1
             ):
-                create_file(file_path=answers.get(question))
+                create_file(get_sample_adocfile(), file_path=answers.get(question))
         if question == "plugins":
             value = answers.get(question)
             if value == "all":
-                USER_PLUGIN_CONFIG[:-2]
+                USER_PLUGIN_CONFIG = USER_PLUGIN_CONFIG[:-2]
             else:
-                USER_PLUGIN_CONFIG.append(value)
+                # USER_PLUGIN_CONFIG.append(value)
+                pass
 
         else:
-            for key, value in answers.items():
+            for _, value in answers.items():
                 if value == "yes":
-                    os.makedirs(key, exist_ok=True)
+                    os.makedirs(os.path.join(project_name, value), exist_ok=True)
+
             return
 
 
 def install_script(command):
-    return run(command, shell=True, stderr=open(os.devnull))
+    try:
+        return run(command, shell=True)
+    except Exception as e:
+        print_exception(exception=e.args)
+        print_exception(
+            """If you need to create to create the revealjs presentation Node and npm must requires.\n In Other Options Refer the Link in Github Repository https://github.com/gunaNeelamegam/revealjs-presentation.git \n
+             
+             * Follow README.md File And then Step's to Genarate the Presentation
+             Without Bather About the Environment.
+             """
+        )
+        exit(1)
 
 
 def install_deps():
@@ -246,14 +265,20 @@ def run_npx_with_asciidoc(source_filename="slides.adoc"):
         raise RevealJsException("RST FILE PATH NOT YET EXIST....")
 
     if SOURCE_FILE_NAME := source_filename.strip().split(".")[0]:
-        print(f"{SOURCE_FILE_NAME=}")
+        print(f"{'*'*20}   {SOURCE_FILE_NAME}  {'*'*20}")
         command = (
             f"npx asciidoctor-revealjs -o  {SOURCE_FILE_NAME}.html {source_filename}"
         )
-        response = run(f"{command}", stderr=open(os.devnull), shell=True)
+        try:
+            response = run(f"{command}", shell=True)
+        except Exception as e:
+            print_exception(
+                message="Syntax Error in rst file ....", exception=[response, e.args]
+            )
+
         if response.returncode != 0:
             raise RevealJsException(
-                "Something went's wrong when runing building the slides adoc file into html file."
+                "Something went's wrong when running building the slides adoc file into html file."
             )
         else:
             print("Successfully Builded html")
@@ -265,7 +290,6 @@ def run_npx_with_asciidoc(source_filename="slides.adoc"):
 def get_imagedata(url: str):
     if url.__contains__("http") or url.__contains__("https"):
         data = get(url, stream=True)
-        print(data)
         return base64.b64encode(data.content).decode()
     else:
         return get_base64_data(url)
@@ -417,7 +441,6 @@ def extract_paths(html_file):
 
 
 def delete_file(filename):
-    print("Deleting Html file ...")
     os.remove(filename)
 
 
@@ -469,16 +492,48 @@ def main():
     try:
         ACTIONS = {"create": create_template, "build": build}
         action_name = sys.argv[1]
+        if action_name.strip() in ["--help", "-h"]:
+            print_exception(
+                message="Reveal Js Builder We Provide to create the project and build the project \n \t Example :",
+                exception=[
+                    "create a new project \n\t\t command: reveal_js create {project_name} as default revealjs-project\n\n",
+                    "build a created project (or) NOTE :: you can use the markdown support also . \n\t\t command: reveal_js create {project_name} as default revealjs-project\n\n",
+                ],
+            )
+            return
         if action_name in ACTIONS.keys():
             ACTIONS.get(action_name)()
             print(f"""{action_name} START'S""")
         else:
+            error_style = "\n\t* {}\n"
             print(
-                "\n \n AS OF NOW WE PROVIDING TWO DIFFERENT SERVICES  \n\n "
-                + "".join("*\t {}\n" for _ in ACTIONS.keys()).format(*ACTIONS.keys())
+                "\n AS OF NOW WE PROVIDING TWO DIFFERENT SERVICES  \n"
+                + "".join(error_style for _ in ACTIONS.keys()).format(
+                    *[action.title() for action in ACTIONS.keys()]
+                )
             )
+
+    except IndexError as e:
+        print_exception(e.args)
+
+
+def print_exception(message="", exception=[]):
+    try:
+        if type(exception) is tuple:
+            exception = list(exception)
+        if type(exception) is dict:
+            exception = exception.keys()
+
+        print(
+            f"\n {message.upper()}  \n"
+            + "".join("\n\t* {}\n" for _ in exception).format(
+                *[action.title() for action in exception]
+            )
+        )
     except Exception as e:
-        print(f" Went's Wrong ... {e.args}")
+        print(e.args)
+        exit(0)
+
 
 if __name__ == "__main__":
     """
