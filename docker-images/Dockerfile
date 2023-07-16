@@ -14,6 +14,8 @@ RUN echo "Y" | apt-get -y update \
 RUN pip3 install -r requirements.txt
 RUN npm init -y \
     && npm i --save asciidoctor @asciidoctor/reveal.js \
-    && npm -g install reveal.js 
+    && npm -g install reveal.js \
+    && pip3 install revealjs
+    
 
-CMD [ "python3","build.py"]
+

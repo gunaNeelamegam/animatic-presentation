@@ -1,28 +1,47 @@
-= docker image for reveal js
+### Docker image for reveal js bundler
 
-    guna.n
+`Inspired By Revealjs` **`Guna.N`**
 
-== command to create new reveal js presentation
+### Command to create new reveal js presentation
 
-     docker run -it --name revealjs-builder3 -v $(pwd):/user/home/app revealjs /bin/bash
+```bash
+    docker pull gunaneelamegam/revealjs-bundler
 
-- steps:
+    docker run -it --name revealjs -v $(pwd):/app revealjs-bundler /bin/bash
 
-    - if you have and .adoc file inside what ever the directory thats not and matter.
+```
 
-    - docker run -it --name (docker container name) -v mapping the volume inside your host machine to dockerized machine.
+- `If you have and .adoc file inside what ever the directory thats not and matter.`
 
-    - -v (your machine directory) --> where the asciidoc file present's.
+- `docker run -it --name (docker container name) -v mapping the volume inside your host machine to dockerized machine.`
 
-    - after the semicolon (:) operator which means that where you needs to points.
+- `-v (your machine directory) --> where the asciidoc file present's.`
 
-    -- user/home/ is the default working directory inside the image.
+- `after the semicolon : operator which means that where you needs to points.`
 
-    --- please make sure on /app directory .
+- `user/home/ is the default working directory inside the image.`
 
-    ---- all the volume inside your local machine will will points into that /app directory only.
+- `please make sure on /app directory .`
 
-    ----- if you needed to generate the presentation file you explicitly move the file and generate that as of now..
+- `NOTE:: execute the following commands to create and build the presentation.`
 
+```bash
+commands:
+   * To create the project.
+   -------------------------------------
+        reveal_js create project-name
+   -------------------------------------
+   * To Build the project
+   -------------------------------------
+        reveal_js build rst file
+   -------------------------------------
+```
 
-    
+- `all the volume inside your local machine will will points into that /app directory only.`
+
+- `if you needed to generate the presentation file you explicitly move the file and generate that as of now.`
+
+```bash
+
+    Thankyou Happy Coding :)
+```
