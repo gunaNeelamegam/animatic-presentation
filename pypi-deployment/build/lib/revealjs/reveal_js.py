@@ -190,7 +190,11 @@ def create_template(status: bool = True):
                 )
                 >= 1
             ):
-                create_file(get_sample_adocfile(), file_path=answers.get(question))
+                file_path = os.path.join(project_name, answers.get(question))
+                create_file(
+                    get_sample_adocfile(),
+                    file_path=file_path,
+                )
         if question == "plugins":
             value = answers.get(question)
             if value == "all":
@@ -200,9 +204,9 @@ def create_template(status: bool = True):
                 pass
 
         else:
-            for _, value in answers.items():
+            for key, value in answers.items():
                 if value == "yes":
-                    os.makedirs(os.path.join(project_name, value), exist_ok=True)
+                    os.makedirs(os.path.join(project_name, key), exist_ok=True)
 
             return
 

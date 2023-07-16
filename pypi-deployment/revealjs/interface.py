@@ -1,9 +1,8 @@
-import pkg_resources
+import os
 
 
 def get_sample_adocfile():
-    file_path = pkg_resources.resource_filename("revealjs", "slide.adoc")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    with open(file_path, "r") as file:
-        slide_contents = file.read()
-        return slide_contents
+    with open(os.path.join(script_dir, "slide.adoc")) as fd:
+        return fd.read()
